@@ -1,0 +1,46 @@
+---
+title: "4. Permutation test for homogeneity of multivariate dispersion & centroid size to genus independence tests"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Permutation test for homogeneity of multivariate dispersion
+
+
+```{r message = FALSE}
+library(vegan)
+library(coin)
+library(rstatix)
+
+genera<-c(rep("Macaques",27), rep("Papionins", 7))
+ID<-c(rep("M. arctoides",2), "M. assamensis", "M. cyclopis", rep("M. fascicularis",4), rep("M. nemestrina",6),
+                 rep("M. radiata",2), "M. nemestrina", rep("M. sinica",2), rep("M. sylvanus", 6), rep("M. thibetana", 2),
+                 rep("P. anubis", 4), "P. hamadryas", rep("P. papio",2))
+size_ext<-proc1$size
+
+# permutation tests
+proc.dist.adonis<-dist(two.d.array(coords[,,1:34]), method = "euclidean") # create distance matrix
+data<-data.frame(genera=genera, ID=ID, size=size_ext)
+
+dispersion<-betadisper(proc.dist.adonis, group = data$genera, type = "median", add="cailliez") 
+set.seed(88)
+permutest(dispersion, permutations = 10000)
+
+```
+
+# centroid size to genus independence tests
+
+```{r message = FALSE}
+data<-data.frame(size=size_ext, genera=as.factor(genera))
+tapply(data$size, data$genera, shapiro.test) # homogeneity of variances
+bartlett.test(size ~ genera, data = data) # normality of centroid sizes in each group
+
+wilcox_test(size ~ genera, data = data, conf.int = T, conf.level = 0.95, distribution = approximate(nresample = 10000))
+wilcox_effsize(size ~ genera, data = data, nboot = 10000, paired = F)
+
+```

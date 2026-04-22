@@ -1,0 +1,86 @@
+---
+title: "7. Regression scores & visualizations - template"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Calcultion of Rregression scores and visualization of meshes/ landmark changes along them.
+
+
+```{r message = FALSE}
+# Create the data frame
+load("Regscores.rda") # this loads the preexisting "gdf" dataframe that contains the coords, size, geenera and species attributions of the complete dataset.
+
+library(RRPP)
+library(geomorph)
+library(stas)
+library(Morpho)
+library(Rvcg)
+library(landvR)
+library(rgl)
+
+fff<-rrpp.data.frame(coords=two.d.array(gdf$coords), size=size, gen=as.factor(genera), sub=species)
+
+```
+
+
+```{r message = FALSE}
+# the regression scores.
+## Regression scores/ PC of fitted values - common allometry example
+fit<-lm.rrpp.ws(coords ~ size + gen,  subjects="sub", data=fff, print.progress=F, logsz=F, RRPP=T, iter=10000,SS.type="II")
+fit_reg<-plotAllometry(fit, size=gdf$size, logsz=F, method="RegScore",  pch=19, col=as.numeric(gdf$genera))
+regression_scores<-fit_reg$RegScore # regression scores
+
+fit_pred<-plotAllometry(fit, size=gdf$size, logsz=F, method="PredLine",  pch=19, col=as.numeric(gdf$genera))
+pc1_scores<-fit_pred$PredLine # PC1 scores of fitted values
+
+fitted_vals <- fit_pred$LM$fitted
+pca_fit <- prcomp(fitted_vals)
+summary(pca_fit)
+pc2_scores <- pca_fit$x[,2] # PC2 scores of fitted values
+
+```
+
+
+
+
+```{r message = FALSE}
+## meshes and landmark variation across the Regression scores axis for static allometry example (Figure 4 of manuscript and Figure S17 below)
+fit<-lm.rrpp.ws(coords ~ size,  subjects="sub", data=fff, print.progress=F, logsz=F, RRPP=T, iter=10000, SS.type ="II")
+reg<-plotAllometry(fit, size=gdf$size, logsz=F, method="RegScore",  pch=19, col=as.numeric(gdf$genera))$RegScore
+fit.coords<-arrayspecs(fit$LM$fitted, 33,3)
+
+gpagen.shape<-list()
+
+gpagen.shape$coords<-fit.coords
+class(gpagen.shape)<-"gpagen"
+
+preds<-shape.predictor(fit.coords, x =reg, Intercept=T, predmin=min(reg), predmax=max(reg)) # or we can use the PC1 or PC2 of fitted values
+
+pred.array<-bindArr(arrayspecs(matrix(preds$predmin, nrow=33, ncol=3),33,3), 
+                                 arrayspecs(matrix(preds$predmax, nrow=33, ncol=3), 33,3), along=3)
+dimnames(pred.array)[[3]]<-c("min", "max")
+
+dif<-coordinates.difference(pred.array[,,"max"], pred.array[,,"min"], type="spherical") 
+
+
+
+#visualization (Figure S17)
+all_species<-final_array[,,1:34]
+
+wraped.max<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array[,,"max"]), percent=0.025)
+wraped.min<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array[,,"min"]), percent=0.025)
+
+open3d()
+procrustes.var.plot(pred.array[,,"min"], pred.array[,,"max"], col=heat.colors, col.val=dif[[1]][,"radius"], labels=F, specular=1, pt.size=0.75, lwd=3)
+shade3d(wraped.min, col="darkmagenta", alpha=0.45, specular=1)
+shade3d(wraped.max, col="orange", alpha=0.65, specular=1)
+
+
+```
+
