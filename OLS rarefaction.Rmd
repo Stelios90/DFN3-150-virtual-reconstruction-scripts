@@ -1,0 +1,76 @@
+---
+title: "7. OLS rarefaction"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# We perform the rarefaction analysis so as to verfy that the observed results of the regression are not hampered by the small sample size.
+
+
+```{r message = FALSE}
+library(RRPP)
+library(stats)
+
+rare<-rarefymenow(data=gdf.extant, n_rare = 7, n_reps = 1000, n_null = 20) # the function command
+sum(rare$p_value<=0.05)
+
+rarefymenow<-function(data, n_rare, n_reps, n_null){
+  start_time<-Sys.time() # time that the loop begins
+  
+  coords <-data$coords
+  size<-data$size
+  genera<-data$genera
+  species<-data$species
+  
+  inds_macaca<-which(genera=="Macaques")
+  inds_papio<-which(genera=="Papionis")
+  p_value<-numeric(n_reps)
+  Z<-numeric(n_reps)
+  
+  p_value_null<-matrix(NA, nrow=n_reps, ncol=n_null)
+  Z_null<-matrix(NA, nrow=n_reps, ncol=n_null)
+  
+  for (i in seq_len(n_reps)) {
+    samp_macaca<-sample(inds_macaca, n_rare)
+    samp_papio<-inds_papio
+    inds_use<-c(samp_macaca, samp_papio)
+    
+    coords_sub<-coords[, , inds_use]
+    size_sub<-size[inds_use]
+    genera_sub<-factor(data$genera[inds_use])
+    species_sub<-species[inds_use]
+    # Rarefy
+    fit_unique<-lm.rrpp.ws(coords~size*genera_sub, subjects="species", data=rrpp.data.frame(coords=two.d.array(coords_sub), size=size_sub, genera_sub=genera_sub, species=species_sub), SS.type="III")
+    
+    dd<-anova(fit_unique)
+    p_value[i]<-dd$table$`Pr(>F)`[3]
+    Z[i]<-dd$table$Z[3]
+    
+    # Null Rarefy
+    for (j in seq_len(n_null)) {
+      genera_sub_null<-sample(genera_sub)
+ 
+      fit_unique_null<-lm.rrpp.ws(coords~size * genera_sub_null, subjects="species", data=rrpp.data.frame(coords=two.d.array(coords_sub), size=size_sub, genera_sub_null=genera_sub_null, species=species_sub), SS.type="III")
+      
+      dd<-anova(fit_unique_null)
+      p_value_null[i,j]<-dd$table$`Pr(>F)`[3]
+      Z_null[i,j]<-dd$table$Z[3]
+    }
+    current_time<-Sys.time() # time of end of the loop
+    elapsed<-as.numeric(current_time-start_time, units="secs") # difference
+    cat(sprintf("Iteration %d-Cumulative seconds elapsed: %.2f\n", i, elapsed)) # print the difference in the console after each loop
+  }
+  return(list(p_value=p_value, Z=Z,
+              p_value_null=p_value_null, Z_nul=Z_null)) # data gathered after all repetitions
+}
+
+# then we run the abovemention command
+rare<-rarefymenow(data=gdf.extant, n_rare = 7, n_reps = 1000, n_null = 20)
+
+```
+

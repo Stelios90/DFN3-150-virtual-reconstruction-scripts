@@ -1,0 +1,40 @@
+---
+title: "6. Phylogenetic regression on comparative material"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# unique allometries phylogenetic regressions
+
+
+```{r message = FALSE}
+library(RRPP)
+library(ape)
+library(phytools)
+
+# consensus on all sample
+tree.all<-read.nexus("…/tree.nex")
+tipcol<-c(rep("purple", 9), rep("gold3", 3))
+plot.phylo(tree.all, "phylogram", cex=1, tip.color =  tipcol, show.tip.label = T, font = 3)
+tree.all$tip.label<-c("M. arctoides", "M. assamensis", "M. cyclopis", "M. fascicularis", "M. nemestrina",
+                      "M. radiata", "M. sinica", "M. sylvanus", "M. thibetana", "P. anubis", "P. hamadryas",
+                      "P. papio")
+
+
+species<-c(rep("M. arctoides",2), "M. assamensis", "M. cyclopis", rep("M. fascicularis",4), rep("M. nemestrina",6),
+        rep("M. radiata",2), "M. nemestrina", rep("M. sinica",2), rep("M. sylvanus", 6), rep("M. thibetana", 2),
+        rep("P. anubis", 4), "P. hamadryas", rep("P. papio",2))
+
+
+data.phylo<-rrpp.data.frame(coords=coords[,,1:34], size=size_ext, genera= as.factor(genera), species=as.factor(species)) 
+fit <- lm.rrpp.ws(coords~size*genera, Cov=vcv(tree.all), subjects = "species", SS.type = "III", data = data.phylo, print.progress = FALSE, logsz=F, RRPP = T, iter = 10000) 
+anova(fit)
+
+
+```
+

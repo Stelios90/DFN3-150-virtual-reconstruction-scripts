@@ -1,0 +1,42 @@
+---
+title: "5. Allometric regressions on comparative material"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ordinany least squares regressions and best fit model inspection
+
+
+```{r message = FALSE}
+library(RRPP)
+gdf.extant<-geomorph.data.frame(coords=coords[,,1:34], size=size_ext, genera= as.factor(genera), species=as.factor(ID))
+
+# this is the static allometry component
+fit.simple<-lm.rrpp.ws(two.d.array(coords)~size, subjects = "species", data=gdf.extant, logsz=F, RRPP = T, iter = 10000, SS.type = "I") 
+
+# common slopes/ individual intercepts
+fit.common<-lm.rrpp.ws(two.d.array(coords)~size+genera, subjects = "species", data=gdf.extant, logsz=F, RRPP = T, iter = 10000, SS.type = "II")
+
+# individual slopes / individual intercepts
+fit.unique<-lm.rrpp.ws(two.d.array(coords)~size*genera, subjects = "species", data=gdf.extant, logsz=F, RRPP = T, iter = 10000, SS.type = "III") 
+
+# a broad inspection of "goodness of fit"
+anova(fit.simple, fit.common, print.progress = T) 
+anova(fit.common, fit.unique, print.progress = T)
+
+# resulting Table 1 in the manuscript
+anova(fit.common)
+anova(fit.unique)
+
+# pairwise test
+pw <- pairwise(fit.unique, fit.common, groups = gdf.extant$genera, covariate = gdf.extant$size)
+summary(pw, test.type = "VC", angle.type = "deg", confidence = 0.95)
+
+
+```
+

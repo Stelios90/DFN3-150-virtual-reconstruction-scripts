@@ -1,0 +1,42 @@
+---
+title: "3. Correlation of PCs to centroid size"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The present script calculates the corelation of centroid size to PC scores, in a multivariate (first) and univariate manner (second). We acquire the p-values and the correlation coefficients. This is a fundamental test to investigate the presence of allometry in the dataset.
+
+
+```{r message = FALSE}
+library(MVN)
+frame<-data.frame(dataset[1:34,1:2],size=size_all[1:34])
+cols_to_test <- c(1:2, 3)  # first 2 PCs + Csize
+result <- mvn(frame[, cols_to_test], mvn_test = "energy", B = 10000)
+print(result$multivariate_normality)
+
+cor.pvalues<-matrix(nrow = 2, ncol = 3)
+rownames(cor.pvalues)<-colnames(dataset[,1:3])
+colnames(cor.pvalues)<-c("Pearson", "Kendall")
+for (i in 1:2) {
+  cor.pvalues[i,1]<-round(cor.test(frame[,i], frame[,3], method = "kendal" ,conf.level = 0.95, alternative = "two.sided")$p.value,5)
+  cor.pvalues[i,2]<-round(cor.test(frame[,i], frame[,3], method = "pearson" ,conf.level = 0.95, alternative = "two.sided")$p.value,5)
+}
+which(cor.pvalues[,1]<=0.05)
+
+coefficient<-matrix(nrow = 3, ncol = 2)
+rownames(coefficient)<-colnames(dataset[,1:3])
+colnames(coefficient)<-c("Spearman", "Kendall")
+for (i in 1:2) {
+  coefficient[i,1]<-cor.test(frame[,i], frame[,3], method = "spearman" ,conf.level = 0.95, alternative = "two.sided")$estimate
+  coefficient[i,2]<-cor.test(frame[,i], frame[,3], method = "kendal" ,conf.level = 0.95, alternative = "two.sided")$estimate
+}
+
+
+
+```
+

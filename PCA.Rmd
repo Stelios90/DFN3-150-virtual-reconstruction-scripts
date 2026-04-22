@@ -1,0 +1,54 @@
+---
+title: "1. PCA"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PCA
+The present script performs a PCA analysis in which the reconstructed models are projected in shape space. One of the differences here is that we do not
+perform a GPA registration for all the sample in the same time. We rather submit the comparative sample in Procrustes registration and then we align the reconstructed models on this registration. This is done in order to furhter facilitate the discrimination between the comparative and fossil samples, in the calculation of the mean.
+
+
+```{r message = FALSE}
+library(Morpho)
+library(stats)
+
+extant_species<-final_array[,,1:34]
+paradolichopithecus<-final_array[,,35:43]
+proc1 <- procSym(extant_species, reflect=F, pcAlign = FALSE, sizeshape = FALSE, CSinit=TRUE, scale = F)
+
+getMeaningfulPCs(proc1$eigenvalues,n=nrow(proc1$PCscores)) # the tolerance of the significance of the PC scores.
+
+newalign <- align2procSym(proc1,paradolichopithecus, orp = T) 
+dimnames(newalign)[3]<-dimnames(paradolichopithecus)[3]
+
+coords<-bindArr(proc1$orpdata, newalign, along = 3)
+data<-corrds
+array<-two.d.array(data)
+
+valid<-array[1:34,] #the validation data set contains the remaining sample
+train<-as.matrix(array[35:43,]) # Paradolichopithecus reconstructions
+
+mod<-prcomp(valid, scale. = F) 
+dataset<-rbind(mod$x,predict(mod,train)) # combine the the two datasets, the original PCA and the projected
+
+# Create a dataframe where the centroid size of all specimens is included
+size_ext<-proc1$size
+size_par<-matrix(nrow =1, ncol = 9)
+for (i in 1:9) {
+  size_par[1,i]<-cSize(paradolichopithecus[,,i])
+}
+size_par<-as.vector(size_par)
+names(size_par)<-dimnames(newalign)[[3]][1:9]
+size_all<-c(size_ext, size_par)
+
+PCA<-as.data.frame(dataset)
+summary(mod)
+
+```
+

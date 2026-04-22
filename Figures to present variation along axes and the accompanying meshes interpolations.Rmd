@@ -1,0 +1,64 @@
+---
+title: "2. Figures to present variation along axes (PC1/ PC2) and the accompanying meshes interpolations"
+output: html_document
+date: "2026-04-21"
+author: "Stylianos Koutalis"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# This script provides the details of how to generate the landmarks and the interpolations of the respected meshes along an axis. In the current, we present
+the case of Figure 2 of the manuscript, but this can be used in any case.
+
+
+```{r message = FALSE}
+library(geomorph)
+library(Morpho)
+library(landvR)
+library(Rvcg)
+library(stringr)
+
+preds.PC1 <- shape.predictor(proc1$orpdata, x =as.matrix(mod$x[,1]), Intercept = FALSE, predmin=min(as.matrix(mod$x[,1])), predmax = max(as.matrix(mod$x[,1])))
+preds.PC2 <- shape.predictor(proc1$orpdata, x =as.matrix(mod$x[,2]), Intercept = FALSE, predmin=min(as.matrix(mod$x[,2])), predmax = max(as.matrix(mod$x[,2])))
+
+pred.array.PC1<-bindArr(arrayspecs(matrix(preds.PC1$predmin, nrow = 33, ncol = 3),33,3), 
+                        arrayspecs(matrix(preds.PC1$predmax, nrow = 33, ncol = 3), 33,3), along = 3)
+pred.array.PC2<-bindArr(arrayspecs(matrix(preds.PC2$predmin, nrow = 33, ncol = 3),33,3), 
+                        arrayspecs(matrix(preds.PC2$predmax, nrow = 33, ncol = 3), 33,3), along = 3)
+
+dimnames(pred.array.PC1)[[3]]<-c("min", "max")
+dimnames(pred.array.PC2)[[3]]<-c("min", "max")
+
+dif.PC1<-coordinates.difference(pred.array.PC1[,,"max"], pred.array.PC1[,,"min"], type = "spherical") 
+dif.PC2<-coordinates.difference(pred.array.PC2[,,"max"], pred.array.PC2[,,"min"], type = "spherical")
+
+meshes<-list()
+
+names_meshes<-list.files(".../symmetrized comparative material meshes", pattern =  ".ply")
+for (k in seq_along(names_meshes)) {
+  setwd(".../symmetrized comparative material meshes")
+  meshes[[k]]<-vcgImport(names_meshes[k])
+  names(meshes)[[k]]<-str_remove(names_meshes[k], ".ply")
+}
+
+all_meshes<-meshes # ply file
+all_species<-final_array[,,1:34] # landmarks
+
+# extant_species[,,29] and all_meshes[[29]] is the "Papio_anubis_PRICT733". We will use is as a demonstration model"
+wraped.PC1.max<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array.PC1[,,"max"]), percent = 0.025)
+wraped.PC1.min<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array.PC1[,,"min"]), percent = 0.025)
+wraped.PC2.max<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array.PC2[,,"max"]), percent = 0.025)
+wraped.PC2.min<-vcgQEdecim(tps3d(all_meshes[[29]], all_species[,,29], pred.array.PC2[,,"min"]), percent = 0.025)
+
+#main result combining meshes and landmark vectors along PC1. We repeat for PC2.
+
+open3d()
+procrustes.var.plot(pred.array.PC1[,,"min"], pred.array.PC1[,,"max"], col = heat.colors, col.val = dif.PC1[[1]][,"radius"], labels = FALSE, specular=1, pt.size = 0.75, lwd = 3)
+shade3d(wraped.PC1.min, col="darkmagenta", alpha=0.45, specular=1)
+shade3d(wraped.PC1.max, col="orange", alpha=0.65, specular=1)
+
+
+```
+
