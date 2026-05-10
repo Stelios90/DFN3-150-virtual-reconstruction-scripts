@@ -2,7 +2,7 @@
 
 DFN3-150 virtual reconstrutions script is the GitHub repository accompanying the following publication:
 
-Koutalis, S., Röding, C., Merceron, G., Guy, F., Kostopoulos, D.S., & Harvati, K. (2026). Virtual reconstruction and analysis of the face of DFN3-150 Paradolichopithecus aff. arvernensis specimen from Dafnero, Greece. Scientific Reports . DOI: 10.1038/s41598-026-51595-8
+Koutalis, S., Röding, C., Merceron, G. et al. Virtual reconstruction and analysis of the face of DFN3-150 Paradolichopithecus aff. arvernensis specimen from Dafnero, Greece. Sci Rep 16, 14703 (2026). https://doi.org/10.1038/s41598-026-51595-8
 
 The uploaded R code is separated into 10 individual *.Rmd files, each descibibing a seperate part of the analysis.
 
